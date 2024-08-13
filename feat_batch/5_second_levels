@@ -1,0 +1,25 @@
+#! /bin/bash
+
+echo 'Enter Subject Number'
+read subject
+#subject=`echo $1`
+#echo ${subject}
+
+PRE=pre_1
+glm=GLM2_2
+
+base_dir=/mnt/f/2023_Peking_DRL
+desdir="${base_dir}/design_files/second_level"
+tmpdir="${base_dir}/design_files/second_level/${glm}"
+output_dir=/mnt/e/2023_Peking_DRL
+first_dir=/mnt/e/2023_Peking_DRL
+mkdir -p ${tmpdir}
+designfile="${desdir}/sec_level_${glm}_new.fsf"
+
+sed    -e s@subject@${subject}@g	\
+       -e s@PRE@${PRE}@g \
+	   -e s@output_dir@${output_dir}@g \
+	   -e s@first_dir@${first_dir}@g \
+	<${designfile} >${tmpdir}/${subject}.fsf
+
+feat ${tmpdir}/${subject}.fsf

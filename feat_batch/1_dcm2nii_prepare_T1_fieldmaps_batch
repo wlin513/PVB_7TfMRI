@@ -1,0 +1,41 @@
+#! /bin/bash
+
+
+base_dir=/mnt/f/2023_Peking_DRL
+sublist=${base_dir}/code/feat_batch/subject_list_t1
+
+#read subject lists
+for subject in $(cat ${sublist}); do
+echo ${subject}
+
+#transfer dicom files to nifti files
+#transfer dicom files to nifti files
+#mkdir -p ${base_dir}/raw_nii/${subject}
+#dcm2niix -o ${base_dir}/raw_nii/${subject}/ -a y -z y /${base_dir}/raw_data/${subject}/MRI/
+
+#fieldmaps
+#mkdir -p ${base_dir}/fieldmaps/${subject}
+#cp ${base_dir}/raw_nii/${subject}/*_gre_field_mapping_*_e2.nii.gz ${base_dir}/fieldmaps/${subject}/fieldmap_mag.nii.gz
+#cp ${base_dir}/raw_nii/${subject}/*_gre_field_mapping_*_e2.json ${base_dir}/fieldmaps/${subject}/fieldmap_mag.json
+#cp ${base_dir}/raw_nii/${subject}/*_gre_field_mapping_*_e2_ph.nii.gz ${base_dir}/fieldmaps/${subject}/fieldmap_ph.nii.gz
+#cp ${base_dir}/raw_nii/${subject}/*_gre_field_mapping_*_e2_ph.json ${base_dir}/fieldmaps/${subject}/fieldmap_ph.json
+#prepare fieldmaps
+#bet ${base_dir}/fieldmaps/${subject}/fieldmap_mag.nii.gz ${base_dir}/fieldmaps/${subject}/fieldmap_mag_brain
+#fslmaths ${base_dir}/fieldmaps/${subject}/fieldmap_mag_brain.nii.gz  -ero ${base_dir}/fieldmaps/${subject}/fieldmap_mag_brain_ero
+#fsl_prepare_fieldmap SIEMENS ${base_dir}/fieldmaps/${subject}/fieldmap_ph.nii.gz ${base_dir}/fieldmaps/${subject}/fieldmap_mag_brain_ero.nii.gz ${base_dir}/fieldmaps/${subject}/fieldmap_rads 1.02
+
+#t1
+mkdir -p ${base_dir}/T1/${subject}
+t1_file=`ls -S ${base_dir}/raw_nii/${subject}/MRI_t1* |head -1`
+cp $t1_file ${base_dir}/T1/${subject}/T1_raw.nii.gz
+t1_mask_file=`ls -S ${base_dir}/raw_nii/${subject}/MRI_t1* |head -2 |tail -1`
+cp $t1_mask_file ${base_dir}/T1/${subject}/T1_mask_raw.nii.gz
+# bet t1_mask
+fslreorient2std ${base_dir}/T1/${subject}/T1_mask_raw.nii.gz ${base_dir}/T1/${subject}/T1_mask_raw.nii.gz
+bet ${base_dir}/T1/${subject}/T1_mask_raw.nii.gz ${base_dir}/T1/${subject}/T1_mask.nii.gz -f 0.1
+
+# bias correction and bet T1
+fsl_anat -o ${base_dir}/T1/${subject}/T1_bias_corr_smooth_20 --strongbias -s 20 --nocrop --noreg --nononlinreg --noseg --nosubcortseg --betfparam=0.25 -i ${base_dir}/T1/${subject}/T1_raw.nii.gz
+done
+
+

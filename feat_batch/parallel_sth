@@ -1,0 +1,4 @@
+#! /bin/bash
+
+cat /mnt/f/2023_Peking_DRL/code/feat_batch/subject_list | xargs -n 1 -P 6  /mnt/f/2023_Peking_DRL/code/feat_batch/make_ROIs_in_highres_space_batch.bash
+

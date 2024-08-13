@@ -1,0 +1,29 @@
+#! /bin/bash
+
+subject=`echo $1`
+echo ${subject}
+
+base_dir=/mnt/f/2023_Peking_DRL
+PRE=pre_2
+declare -a blklist=("BHBL1" "BHBL2" "BHNL" "NHBL" "BHNH1" "BHNH2" "BLNL1" "BLNL2")
+
+seedname=left_Hb_15
+seedir=${base_dir}/ROIs
+
+PPIdir="${base_dir}/PPI/${seedname}"
+desdir="${PPIdir}/${subject}/time_courses/${PRE}"
+mkdir -p ${desdir}
+mkdir -p ${PPIdir}/${subject}/ROI_mask
+
+cp ${seedir}/${seedname}.nii* ${PPIdir}
+
+for i in `seq 0 7` ; do
+
+predir="${base_dir}/preprocessing/${PRE}/${subject}/${blklist[$i]}.feat"
+
+#transform a mask on the standard space to individual space
+flirt -in ${PPIdir}/${seedname}.nii* -ref ${predir}/example_func.nii.gz  -applyxfm -init ${predir}/reg/standard2example_func.mat -out ${PPIdir}/${subject}/ROI_mask/${seedname}_${blklist[$i]}
+fslmaths ${PPIdir}/${subject}/ROI_mask/${seedname}_${blklist[$i]} -thr 0.9 -bin ${PPIdir}/${subject}/ROI_mask/${seedname}_${blklist[$i]}
+
+fslmeants -i  ${predir}/filtered_func_data.nii.gz -o ${desdir}/${blklist[$i]}.txt -m ${PPIdir}/${subject}/ROI_mask/${seedname}_${blklist[$i]}
+done

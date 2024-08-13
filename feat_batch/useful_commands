@@ -1,0 +1,8 @@
+#! /bin/bash
+
+ls -d /media/wlin/Data2/wlin/2021_DRL_fMRI/first_level/GLM1_pre_1/sub_014/*.feat
+
+#this automatically crop and resampled
+resample_image -r /usr/local/fsl/data/standard/MNI152_T1_1mm.nii.gz NAcc.nii NAcc_resampled.nii
+
+

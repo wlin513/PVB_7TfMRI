@@ -1,0 +1,52 @@
+#! /bin/bash
+
+# move and rename the imaging data from the rawdata folder
+
+
+
+base_dir=/mnt/f/2023_Peking_DRL
+sublist=${base_dir}/code/feat_batch/subject_list_t1
+
+#read experiment info
+#read subject lists
+for subject in $(cat ${sublist}); do
+while read line;
+do
+blkorder+=($line);
+done <${base_dir}/code/feat_batch/blkorderlist.txt
+
+for i in "${!blkorder[@]}"; do
+   if [ "${blkorder[$i]}" == "${subject}" ] ; then
+       orderindex=${i};
+   fi
+done
+
+declare -a blklist=("BHBL1" "BHBL2" "BHNL" "NHBL" "BHNH1" "BHNH2" "BLNL1" "BLNL2")
+
+# copy func images to each block folder
+for i in `seq 0 7`; do
+echo 'the sub is' ${blkorder[$orderindex]} $subject
+echo 'current scans are' run_$[i+1] 
+echo 'the current blk num is' ${blkorder[$orderindex+i+1]}
+echo 'the current blk name is' ${blklist[${blkorder[$orderindex+i+1]}-1]}
+mkdir -p ${base_dir}/funcimgs/${subject}/${blklist[${blkorder[$orderindex+i+1]}-1]}/highres_func/
+mkdir -p ${base_dir}/funcimgs/${subject}/${blklist[${blkorder[$orderindex+i+1]}-1]}/task_func/
+
+funcimg=`ls -S ${base_dir}/raw_nii/${subject}/MRI_run_$[i+1]_cmrr_bold* |head -1`
+highresimg=`ls -S ${base_dir}/raw_nii/${subject}/MRI_run_$[i+1]_cmrr_bold* |head -2 |tail -1`
+
+cp $highresimg ${base_dir}/funcimgs/${subject}/${blklist[${blkorder[$orderindex+i+1]}-1]}/highres_func/
+cp $funcimg ${base_dir}/funcimgs/${subject}/${blklist[${blkorder[$orderindex+i+1]}-1]}/task_func/
+done
+
+#whole brain functional images
+mkdir -p ${base_dir}/wb_func/${subject}/
+
+wbimg=`ls ${base_dir}/raw_nii/${subject}/MRI_WB_cmrr_bold_2d* |head -2 |tail -1`
+cp $wbimg ${base_dir}/wb_func/${subject}/whole_brain_func.nii.gz
+
+
+#bet whole brain functional images
+bet ${base_dir}/wb_func/${subject}/whole_brain_func.nii.gz ${base_dir}/wb_func/${subject}/whole_brain_func_brain.nii.gz -f 0.15
+
+done

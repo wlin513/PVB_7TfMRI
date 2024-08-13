@@ -1,0 +1,3 @@
+#! /bin/bash
+
+cat /mnt/e/wlin/2021_DRL_fMRI/code/feat_batch/subject_list_rev | xargs -n 1 -P 3  /mnt/e/wlin/2021_DRL_fMRI/code/feat_batch/5_second_levels_batch

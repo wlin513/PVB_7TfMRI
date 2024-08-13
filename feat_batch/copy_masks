@@ -1,0 +1,24 @@
+#! /bin/bash
+
+base_dir=/mnt/f/2023_Peking_DRL
+
+readarray -d ' ' -t subjectlist < ${base_dir}/code/feat_batch/subject_list_n49
+echo coping FOV masks for participants: ${subjectlist[@]}
+
+#for i in `seq 1 ${#subjectlist[@]}`; do 
+#cp ${base_dir}/second_level/GLM1_pre_1/${subjectlist[i-1]}.gfeat/mask.nii.gz ${base_dir}/FOV_masks/${subjectlist[i-1]}.nii.gz
+#done
+
+ cp ${base_dir}/FOV_masks/${subjectlist[0]}.nii.gz ${base_dir}/FOV_masks/all.nii.gz
+for i in `seq 2 ${#subjectlist[@]}`; do 
+ fslmaths ${base_dir}/FOV_masks/all.nii.gz -add ${base_dir}/FOV_masks/${subjectlist[i-1]}.nii.gz ${base_dir}/FOV_masks/all.nii.gz
+done
+
+#cp ${base_dir}/ROI_analysis/${subjectlist[0]}/left_Hb_mni* ${base_dir}/ROIs/left_Hb.nii.gz
+#cp ${base_dir}/ROI_analysis/${subjectlist[0]}/right_Hb_mni* ${base_dir}/ROIs/right_Hb.nii.gz
+#cp ${base_dir}/ROI_analysis/${subjectlist[0]}/bilateral_Hb_mni* ${base_dir}/ROIs/bilateral_Hb.nii.gz
+#for i in `seq 2 ${#subjectlist[@]}`; do 
+# fslmaths ${base_dir}/ROIs/left_Hb.nii.gz -add ${base_dir}/ROI_analysis/${subjectlist[i-1]}/left_Hb_mni.nii* ${base_dir}/ROIs/left_Hb.nii.gz
+# fslmaths ${base_dir}/ROIs/right_Hb.nii.gz -add ${base_dir}/ROI_analysis/${subjectlist[i-1]}/right_Hb_mni.nii* ${base_dir}/ROIs/right_Hb.nii.gz
+# fslmaths ${base_dir}/ROIs/bilateral_Hb.nii.gz -add ${base_dir}/ROI_analysis/${subjectlist[i-1]}/bilateral_Hb_mni.nii* ${base_dir}/ROIs/bilateral_Hb.nii.gz
+#done

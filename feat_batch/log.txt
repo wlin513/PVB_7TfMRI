@@ -1,0 +1,2 @@
+for T1 images:
+sub_15's t1_**_10 and t1_**_11 were named differently from other participants'.

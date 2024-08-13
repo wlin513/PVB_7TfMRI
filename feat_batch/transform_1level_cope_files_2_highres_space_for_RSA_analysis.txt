@@ -1,0 +1,4 @@
+cp /mnt/h/2023_Peking_DRL/first_level/GLM1_pre_1/sub_04/BHBL1.feat/stats/cope1.nii.gz GLM1_pre_1_cope1.nii.gz
+applywarp --ref=highres --in=GLM1_pre_1_cope1.nii.gz --out=GLM1_pre_1_cope1_2highres.nii.gz --warp=example_func2highres_warp
+cp /mnt/h/2023_Peking_DRL/first_level/GLM1_pre_1/sub_04/BHBL1.feat/stats/res4d.nii.gz GLM1_res4d.nii.gz
+applywarp --ref=highres --in=GLM1_res4d.nii.gz --out=GLM1_res4d_2highres.nii.gz --warp=example_func2highres_warp
