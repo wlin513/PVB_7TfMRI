@@ -1,0 +1,265 @@
+%% 
+ clear all; 
+ clc;
+%%
+
+basedir='F:\2023_Peking_DRL\';
+datadir=[basedir,'raw_data'];
+cd([basedir,'code/matlab']);
+%load([datadir,'\beh_data.mat'])
+load([basedir,'code/matlab/model_results.mat'])
+%% read in behavior and questionnaire data
+tn=30;
+blkname={'BHBL1','BHBL2','BHNL','NHBL','BHNH1','BHNH2','BLNL1','BLNL2'};
+%%
+        
+is=0;
+for ss=1:size(data,2)
+    %%   
+    include=option_include&accuracy_include;
+    if include(ss)==1
+            is=is+1; 
+            chosen=data(ss).choice==1;
+            order=data(ss).order==2;%original order code:order=1:opt2 shown first;order=2:opt1 shown first.here true for opt1 first.
+            %% calculate EVs for each option for each participant
+            poslr=ee.PNPE.mean_alpha_pos(ss);
+            neglr=ee.PNPE.mean_alpha_neg(ss);
+            opt1_out=data(ss).opt1_out;
+            opt2_out=data(ss).opt2_out;
+            opt1_EVs=zeros(size(opt1_out));
+            opt2_EVs=zeros(size(opt2_out));
+            for i=1:length(opt1_out)
+                if mod(i,tn)==1
+                    opt1_EVs(i)=7;
+                    opt2_EVs(i)=7;
+                else
+                    if opt1_out(i-1)>opt1_EVs(i-1)
+                        opt1_EVs(i)=opt1_EVs(i-1)+poslr*(opt1_out(i-1)-opt1_EVs(i-1));                    
+                    else
+                        opt1_EVs(i)=opt1_EVs(i-1)+neglr*(opt1_out(i-1)-opt1_EVs(i-1));
+                    end
+                    if opt2_out(i-1)>opt2_EVs(i-1)
+                        opt2_EVs(i)=opt2_EVs(i-1)+poslr*(opt2_out(i-1)-opt2_EVs(i-1));                    
+                    else
+                        opt2_EVs(i)=opt2_EVs(i-1)+neglr*(opt2_out(i-1)-opt2_EVs(i-1));
+                    end
+                end
+            end
+                        
+            opt1_PEs=opt1_out-opt1_EVs;
+            opt2_PEs=opt2_out-opt2_EVs;
+            
+            choice_value_diff=opt1_EVs-opt2_EVs;
+            choice_value_diff(~chosen)=opt2_EVs(~chosen)-opt1_EVs(~chosen); %opt1 not chosen
+            
+            opt1_TR=data(ss).TR_feedback1;
+            opt1_TR(~order)=data(ss).TR_feedback2(~order);
+            
+            opt2_TR=data(ss).TR_feedback2;
+            opt2_TR(~order)=data(ss).TR_feedback1(~order);
+            
+            for i=1:length(blkname)                
+                %%
+                %outcome
+                bb=data(ss).blockN==i;
+                aa=repmat(bb,[tn,1]);
+                blkidx=reshape(aa,[size(aa,1)*size(aa,2),1]);
+
+                refpoint=0;
+
+                %when opt_a/opt1 has a positive prediction errors
+                opt1_PPE(i).onset=opt1_TR(blkidx&opt1_PEs>refpoint);
+                opt1_PPE(i).value=opt1_PEs(blkidx&opt1_PEs>refpoint);
+                opt1_PPE(i).value=opt1_PPE(i).value-mean(opt1_PPE(i).value);
+                opt1_PPE(i).dur=zeros(size(opt1_PPE(i).onset));
+
+                mean_opt1_PPE(i).onset=opt1_PPE(i).onset;
+                mean_opt1_PPE(i).value=ones(size(opt1_PPE(i).onset));
+                mean_opt1_PPE(i).dur=zeros(size(opt1_PPE(i).onset));
+
+                %when opt_a has a negative prediction errors
+                opt1_NPE(i).onset=opt1_TR(blkidx&opt1_PEs<refpoint);
+                opt1_NPE(i).value=opt1_PEs(blkidx&opt1_PEs<refpoint);
+                opt1_NPE(i).value=-opt1_NPE(i).value-mean(-opt1_NPE(i).value);
+                opt1_NPE(i).dur=zeros(size(opt1_NPE(i).onset));
+
+                mean_opt1_NPE(i).onset=opt1_NPE(i).onset;
+                mean_opt1_NPE(i).value=ones(size(opt1_NPE(i).onset));
+                mean_opt1_NPE(i).dur=zeros(size(opt1_NPE(i).onset));
+
+
+                %when opt_b has a positive prediction error
+                opt2_PPE(i).onset=opt2_TR(blkidx&opt2_PEs>refpoint);
+                opt2_PPE(i).value=opt2_PEs(blkidx&opt2_PEs>refpoint);
+                opt2_PPE(i).value=opt2_PPE(i).value-mean(opt2_PPE(i).value);
+                opt2_PPE(i).dur=zeros(size(opt2_PPE(i).onset));
+
+                mean_opt2_PPE(i).onset=opt2_PPE(i).onset;
+                mean_opt2_PPE(i).value=ones(size(opt2_PPE(i).onset));
+                mean_opt2_PPE(i).dur=zeros(size(opt2_PPE(i).onset));
+
+                %when opt_b has a negative prediction error
+                opt2_NPE(i).onset=opt2_TR(blkidx&opt2_PEs<refpoint);
+                opt2_NPE(i).value=opt2_PEs(blkidx&opt2_PEs<refpoint);
+                opt2_NPE(i).value=-opt2_NPE(i).value-mean(-opt2_NPE(i).value);
+                opt2_NPE(i).dur=zeros(size(opt2_NPE(i).onset));
+
+                mean_opt2_NPE(i).onset=opt2_NPE(i).onset;
+                mean_opt2_NPE(i).value=ones(size(opt2_NPE(i).onset));
+                mean_opt2_NPE(i).dur=zeros(size(opt2_NPE(i).onset));
+                
+               fdb3(i).onset=data(ss).TR_ITI(blkidx)-1;%fdb3 were presented for 1s
+               fdb3(i).value=ones(size(fdb3(i).onset));
+               fdb3(i).dur=zeros(size(fdb3(i).onset));
+
+
+            %calculate the choice present duration(the rule is if the participant responds within 1s the choice will be presentted for 1s, if they don't
+            %response within 5s, a ramdom choice will be made for them, RT for this trial will nan)
+        %     choicedur=ones(length(data.trialnum),1);
+        % 
+        %     for i=1:length(choicedur)
+        %         if isnan(data.RT(i))
+        %             choicedur(i)=5;
+        %         else
+        %             if data.RT(i)>1
+        %             choicedur(i)=data.RT(i);
+        %             end
+        %         end
+        %     end
+
+            % @choice onset
+            %regressor 1: the response(-1 for left; 1 for right; leave out the trial in which the participants didn't respond; then demean)
+
+                resp(i).onset=data(ss).TR_choice(blkidx);
+                resp(i).value=(data(ss).resp(blkidx)-1.5)*2;
+                resp(i).value=resp(i).value-mean(resp(i).value);
+                resp(i).dur=zeros(size(resp(i).onset));
+
+
+            %regressor 2: the reaction time (demean)
+
+                RT(i).onset=data(ss).TR_choice(blkidx);
+                RT(i).value=data(ss).rt(blkidx);
+                RT(i).value=RT(i).value-mean(RT(i).value);
+                RT(i).dur=resp(i).dur;
+                
+                ch_const(i).onset=data(ss).TR_choice(blkidx);
+                ch_const(i).value=ones(size(ch_const(i).onset));
+                ch_const(i).dur=zeros(size(ch_const(i).onset));
+
+                vdiff(i).onset=data(ss).TR_choice(blkidx);
+                vdiff(i).value=choice_value_diff(blkidx);
+                vdiff(i).value=vdiff(i).value-mean(vdiff(i).value);
+                vdiff(i).dur=zeros(size(vdiff(i).onset));
+                
+
+
+      
+
+
+     %   write txt files for each regressor
+          mkdir([basedir,'EVfiles/GLM3/',data(ss).subnum]);
+          warning('off', 'MATLAB:MKDIR:DirectoryExists');  
+                %@choice
+                resptmp=[resp(i).onset resp(i).dur resp(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/1_response_',blkname{i},'.txt'],'resptmp','-ascii');
+
+                vdifftmp=[vdiff(i).onset vdiff(i).dur vdiff(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/2_value_diff_',blkname{i},'.txt'],'vdifftmp','-ascii');
+
+                ch_consttmp=[ch_const(i).onset ch_const(i).dur ch_const(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/3_ch_const_',blkname{i},'.txt'],'ch_consttmp','-ascii');
+                %@outcome
+                opt1_PPEtmp=[opt1_PPE(i).onset opt1_PPE(i).dur opt1_PPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/4_opt1_PPE_',blkname{i},'.txt'],'opt1_PPEtmp','-ascii');
+
+                mean_opt1_PPEtmp=[mean_opt1_PPE(i).onset mean_opt1_PPE(i).dur mean_opt1_PPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/5_mean_opt1_PPE_',blkname{i},'.txt'],'mean_opt1_PPEtmp','-ascii');
+
+                opt1_NPEtmp=[opt1_NPE(i).onset opt1_NPE(i).dur opt1_NPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/6_opt1_NPE',blkname{i},'.txt'],'opt1_NPEtmp','-ascii');    
+
+                mean_opt1_NPEtmp=[mean_opt1_NPE(i).onset mean_opt1_NPE(i).dur mean_opt1_NPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/7_mean_opt1_NPE',blkname{i},'.txt'],'mean_opt1_NPEtmp','-ascii');   
+
+                opt2_PPEtmp=[opt2_PPE(i).onset opt2_PPE(i).dur opt2_PPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/8_opt2_PPE_',blkname{i},'.txt'],'opt2_PPEtmp','-ascii');
+
+                mean_opt2_PPEtmp=[mean_opt2_PPE(i).onset mean_opt2_PPE(i).dur mean_opt2_PPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/9_mean_opt2_PPE_',blkname{i},'.txt'],'mean_opt2_PPEtmp','-ascii');
+
+                opt2_NPEtmp=[opt2_NPE(i).onset opt2_NPE(i).dur opt2_NPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/10_opt2_NPE',blkname{i},'.txt'],'opt2_NPEtmp','-ascii');    
+
+                mean_opt2_NPEtmp=[mean_opt2_NPE(i).onset mean_opt2_NPE(i).dur mean_opt2_NPE(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/11_mean_opt2_NPE',blkname{i},'.txt'],'mean_opt2_NPEtmp','-ascii');   
+                
+                fdb3tmp=[fdb3(i).onset fdb3(i).dur fdb3(i).value];
+                save([basedir,'EVfiles/GLM3/',data(ss).subnum,'/12_feedback3_',blkname{i},'.txt'],'fdb3tmp','-ascii');
+
+
+        % Make the hrf and plot the corr matrix
+        names_regressor={'Response','value diff','Choice constant',...
+            'opt1 PPE','mean opt1 PPE','opt1 NPE','mean opt1 NPE',...
+            'opt2 PPE','mean opt2 PPE','opt2 NPE','mean opt2 NPE',...
+            'feedback3'};
+
+             endtime=data(ss).TR_ITI(tn*i,1);
+             tmpR=cal_design_matrix(endtime,resp(i),vdiff(i),ch_const(i),...
+                 opt1_PPE(i),mean_opt1_PPE(i),opt1_NPE(i),mean_opt1_NPE(i),...
+                 opt2_PPE(i),mean_opt2_PPE(i),opt2_NPE(i),mean_opt2_NPE(i),...
+                 fdb3(i));
+             R(is,i,:,:)=tmpR;
+
+            f1=figure;
+            imagesc(tmpR);
+            colorbar;
+
+            title(strrep(blkname{i},'_',' '));
+
+            set(gca,'Xtick',1:length(names_regressor),'XTickLabel',[ ])
+            set(gca,'Ytick',1:length(names_regressor),'YTickLabel',[ ])
+            for t=1:length(names_regressor)
+                text(0,t+1,names_regressor{t});
+                text(t-0.4,length(names_regressor),names_regressor{t});
+            end
+            H=findobj(gca,'Type','text');
+            set(H,'Rotation',60); % tilt
+
+            saveas(f1,[basedir,'EVfiles/GLM3/',data(ss).subnum,'/designmatrix_',blkname{i},'.png'])
+            end
+
+    end
+end
+%% plot maximum corr coef design across participants
+for i=1:length(blkname)
+    RR=R(:,:,:,:);
+    RR(RR==1)=0;
+    RRabs=abs(RR);
+    maxRabs=max(RRabs,[],1);
+    maxRori=max(RR,[],1);
+    NegCinx=(maxRabs-maxRori);
+    maxR=maxRabs;
+    maxR(NegCinx>0)=-maxR(NegCinx>0);
+    
+    
+    f2=figure;
+    tmpR=maxR(:,i,:,:);
+    tmpR(tmpR==0)=1;
+    imagesc(squeeze(tmpR));
+    colorbar;
+    
+    title(strrep(blkname{i},'_',' '));
+    
+    set(gca,'Xtick',1:7,'XTickLabel',[ ])
+    set(gca,'Ytick',1:7,'YTickLabel',[ ])
+    
+    for t=1:length(names_regressor)
+    text(0,t+1,names_regressor{t});
+    text(t-0.4,length(names_regressor)+1,names_regressor{t});
+    end
+    H=findobj(gca,'Type','text');
+    set(H,'Rotation',60); % tilt
+    
+    %saveas(f2,[basedir,'EVfiles/GLM3/max_designmatrix_',blkname{i},'.png'])
+end
